@@ -30,16 +30,16 @@ jobs:
         id: tf_outputs
         working-directory: ./infra
         run: |
-          echo "TASK_DEFINITION=$(terraform output -raw task_definition_family)" >> $GITHUB_ENV
-          echo "ECS_SERVICE=$(terraform output -raw ecs_service_name)" >> $GITHUB_ENV
-          echo "ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_ENV
+          echo "task_definition=$(terraform output -raw task_definition_family)" >> $GITHUB_OUTPUT
+          echo "ecs_service=$(terraform output -raw ecs_service_name)" >> $GITHUB_OUTPUT
+          echo "ecs_cluster=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_OUTPUT
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: ${{ env.TASK_DEFINITION }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
+          task-definition: ${{ steps.tf_outputs.outputs.task_definition }}
+          service: ${{ steps.tf_outputs.outputs.ecs_service }}
+          cluster: ${{ steps.tf_outputs.outputs.ecs_cluster }}
           wait-for-service-stability: true
         env:
           AWS_REGION: us-east-1
