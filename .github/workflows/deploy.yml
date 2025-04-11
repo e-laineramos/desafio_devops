@@ -30,9 +30,9 @@ jobs:
         id: tf_outputs
         working-directory: ./infra
         run: |
-          echo "task_definition=$(terraform output -raw task_definition_family)" >> $GITHUB_OUTPUT
-          echo "ecs_service=$(terraform output -raw ecs_service_name)" >> $GITHUB_OUTPUT
-          echo "ecs_cluster=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_OUTPUT
+          echo "task_definition=$(terraform output -raw task_definition_family | tr -d '\r\n')" >> $GITHUB_OUTPUT
+          echo "ecs_service=$(terraform output -raw ecs_service_name | tr -d '\r\n')" >> $GITHUB_OUTPUT
+          echo "ecs_cluster=$(terraform output -raw ecs_cluster_name | tr -d '\r\n')" >> $GITHUB_OUTPUT
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
