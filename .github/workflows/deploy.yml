@@ -17,12 +17,14 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Init & Apply
+        working-directory: ./infra
         run: |
           terraform init
           terraform apply -auto-approve
 
       - name: Get Terraform Outputs
         id: tf_outputs
+        working-directory: ./infra
         run: |
           echo "TASK_DEFINITION=$(terraform output -raw task_definition_family)" >> $GITHUB_ENV
           echo "ECS_SERVICE=$(terraform output -raw ecs_service_name)" >> $GITHUB_ENV
