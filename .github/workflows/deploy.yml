@@ -29,10 +29,14 @@ jobs:
       - name: Get Terraform Outputs
         id: tf_outputs
         working-directory: ./infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
         run: |
-          echo "task_definition=$(terraform output -raw task_definition_family | tr -d '\r\n')" >> $GITHUB_OUTPUT
-          echo "ecs_service=$(terraform output -raw ecs_service_name | tr -d '\r\n')" >> $GITHUB_OUTPUT
-          echo "ecs_cluster=$(terraform output -raw ecs_cluster_name | tr -d '\r\n')" >> $GITHUB_OUTPUT
+          echo "task_definition=$(terraform output -raw task_definition_family | tr -d '\r\n')" >> $GITHUB_ENV
+          echo "ecs_service=$(terraform output -raw ecs_service_name | tr -d '\r\n')" >> $GITHUB_ENV
+          echo "ecs_cluster=$(terraform output -raw ecs_cluster_name | tr -d '\r\n')" >> $GITHUB_ENV
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
@@ -46,3 +50,4 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
