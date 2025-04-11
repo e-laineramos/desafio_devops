@@ -13,6 +13,8 @@ output "github_actions_secret_key" {
   sensitive = true
 }
 
+# ECS Outputs
+
 output "ecs_cluster_name" {
   value = module.ecs.ecs_cluster_name
 }
