@@ -29,15 +29,22 @@ jobs:
         id: get-outputs
         working-directory: ./infra
         run: |
-          # Execute and capture the actual values
-          TASK_DEF=$(terraform output -raw task_definition_family)
-          ECS_SERVICE=$(terraform output -raw ecs_service_name)
-          ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)
-          
-          # Store in GitHub environment
-          echo "TASK_DEFINITION=${TASK_DEF}" >> $GITHUB_ENV
-          echo "ECS_SERVICE=${ECS_SERVICE}" >> $GITHUB_ENV
-          echo "ECS_CLUSTER=${ECS_CLUSTER}" >> $GITHUB_ENV
+          TASK_DEF=$(terraform output -raw task_definition_family | grep -v '::debug::' | tr -d '\r\n')
+          ECS_SERVICE=$(terraform output -raw ecs_service_name | grep -v '::debug::' | tr -d '\r\n')
+          ECS_CLUSTER=$(terraform output -raw ecs_cluster_name | grep -v '::debug::' | tr -d '\r\n')
+    
+          if [ -z "$TASK_DEF" ] || [ -z "$ECS_SERVICE" ] || [ -z "$ECS_CLUSTER" ]; then
+            echo "Error: One or more Terraform outputs are empty"
+            exit 1
+          fi
+    
+          echo "TASK_DEFINITION=$TASK_DEF" >> $GITHUB_ENV
+          echo "ECS_SERVICE=$ECS_SERVICE" >> $GITHUB_ENV
+          echo "ECS_CLUSTER=$ECS_CLUSTER" >> $GITHUB_ENV
+    
+          echo "Extracted Task Definition: '$TASK_DEF'"
+          echo "Extracted ECS Service: '$ECS_SERVICE'"
+          echo "Extracted ECS Cluster: '$ECS_CLUSTER'"
 
       - name: Verify Outputs
         run: |
