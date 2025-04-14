@@ -38,9 +38,23 @@ jobs:
         id: tf_outputs
         working-directory: ./infra
         run: |
-          echo "TASK_DEFINITION=$(terraform output -raw task_definition_family)" >> $GITHUB_ENV
-          echo "ECS_SERVICE=$(terraform output -raw ecs_service_name)" >> $GITHUB_ENV
-          echo "ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_ENV
+          TASK_DEF=$(terraform output -raw task_definition_family | tr -d '\r\n')
+          ECS_SVC=$(terraform output -raw ecs_service_name | tr -d '\r\n')
+          ECS_CLUST=$(terraform output -raw ecs_cluster_name | tr -d '\r\n')
+    
+          TASK_DEF_CLEAN=$(echo "$TASK_DEF" | sed 's/::debug::.*//')
+          ECS_SVC_CLEAN=$(echo "$ECS_SVC" | sed 's/::debug::.*//')
+          ECS_CLUST_CLEAN=$(echo "$ECS_CLUST" | sed 's/::debug::.*//')
+    
+          echo "TASK_DEFINITION=$TASK_DEF_CLEAN" >> $GITHUB_ENV
+          echo "ECS_SERVICE=$ECS_SVC_CLEAN" >> $GITHUB_ENV
+          echo "ECS_CLUSTER=$ECS_CLUST_CLEAN" >> $GITHUB_ENV
+
+      - name: Debug Outputs
+        run: |
+          echo "Task Definition: $TASK_DEFINITION"
+          echo "ECS Service: $ECS_SERVICE"
+          echo "ECS Cluster: $ECS_CLUSTER"
 
       - name: Debug Outputs
         run: |
