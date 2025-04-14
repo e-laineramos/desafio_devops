@@ -7,44 +7,48 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Configure AWS Credentials for Terraform
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Set up Terraform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
 
-      - name: Terraform Init & Apply
+      - name: Terraform Init
         working-directory: ./infra
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
-        run: |
-          terraform init
-          terraform apply -auto-approve
+        run: terraform init
 
       - name: Get Terraform Outputs
-        id: tf_outputs
+        id: get-outputs
         working-directory: ./infra
         run: |
-          echo "task_def=$(terraform output -raw task_definition_family | tr -d '\r\n' | sed 's/::debug::.*//')" >> $GITHUB_OUTPUT
-          echo "ecs_svc=$(terraform output -raw ecs_service_name | tr -d '\r\n' | sed 's/::debug::.*//')" >> $GITHUB_OUTPUT
-          echo "ecs_clust=$(terraform output -raw ecs_cluster_name | tr -d '\r\n' | sed 's/::debug::.*//')" >> $GITHUB_OUTPUT
+          # Execute and capture the actual values
+          TASK_DEF=$(terraform output -raw task_definition_family)
+          ECS_SERVICE=$(terraform output -raw ecs_service_name)
+          ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)
+          
+          # Store in GitHub environment
+          echo "TASK_DEFINITION=${TASK_DEF}" >> $GITHUB_ENV
+          echo "ECS_SERVICE=${ECS_SERVICE}" >> $GITHUB_ENV
+          echo "ECS_CLUSTER=${ECS_CLUSTER}" >> $GITHUB_ENV
+
+      - name: Verify Outputs
+        run: |
+          echo "Task Definition: $TASK_DEFINITION"
+          echo "ECS Service: $ECS_SERVICE"
+          echo "ECS Cluster: $ECS_CLUSTER"
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ steps.tf_outputs.outputs.task_def }}
-          service: ${{ steps.tf_outputs.outputs.ecs_svc }}
-          cluster: ${{ steps.tf_outputs.outputs.ecs_clust }}
+          task-definition: ${{ env.TASK_DEFINITION }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
