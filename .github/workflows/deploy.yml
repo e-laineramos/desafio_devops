@@ -1,61 +1,67 @@
-name: Deploy to ECS
+name: ECS Deployment
 
 on:
+  workflow_dispatch:
+    inputs:
+      terraform_action:
+        type: choice
+        description: Select Terraform Action
+        options:
+          - apply
+          - destroy
+        required: true
   push:
-    branches: [main]
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: us-east-1
 
 jobs:
-  deploy:
+  terraform:
+    name: 'Terraform Apply/Destroy'
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+          aws-access-key-id: ${{ secrets.AWS_DEVOPS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVOPS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Terraform Init
-        working-directory: ./infra
-        run: terraform init
-
-      - name: Get Terraform Outputs
-        id: get-outputs
-        working-directory: ./infra
-        run: |
-          TASK_DEF=$(terraform output -raw task_definition_family | grep -v '::debug::' | tr -d '\r\n')
-          ECS_SERVICE=$(terraform output -raw ecs_service_name | grep -v '::debug::' | tr -d '\r\n')
-          ECS_CLUSTER=$(terraform output -raw ecs_cluster_name | grep -v '::debug::' | tr -d '\r\n')
-    
-          if [ -z "$TASK_DEF" ] || [ -z "$ECS_SERVICE" ] || [ -z "$ECS_CLUSTER" ]; then
-            echo "Error: One or more Terraform outputs are empty"
-            exit 1
-          fi
-    
-          echo "TASK_DEFINITION=$TASK_DEF" >> $GITHUB_ENV
-          echo "ECS_SERVICE=$ECS_SERVICE" >> $GITHUB_ENV
-          echo "ECS_CLUSTER=$ECS_CLUSTER" >> $GITHUB_ENV
-    
-          echo "Extracted Task Definition: '$TASK_DEF'"
-          echo "Extracted ECS Service: '$ECS_SERVICE'"
-          echo "Extracted ECS Cluster: '$ECS_CLUSTER'"
-
-      - name: Verify Outputs
-        run: |
-          echo "Task Definition: $TASK_DEFINITION"
-          echo "ECS Service: $ECS_SERVICE"
-          echo "ECS Cluster: $ECS_CLUSTER"
-
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        uses: hashicorp/terraform-github-actions@master
         with:
-          task-definition: ${{ env.TASK_DEFINITION }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          tf_actions_version: '1.1.7'
+          tf_actions_subcommand: 'init'
+          tf_actions_working_dir: './infra'
+          tf_actions_comment: true
+
+      - name: Terraform Validate
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: '1.1.7'
+          tf_actions_subcommand: 'validate'
+          tf_actions_working_dir: './infra'
+          tf_actions_comment: true
+
+      - name: Terraform Plan
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: '1.1.7'
+          tf_actions_subcommand: 'plan'
+          tf_actions_working_dir: './infra'
+          tf_actions_comment: true
+          args: '-out=plan.tfplan'
+
+      - name: Terraform Apply/Destroy
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: '1.1.7'
+          tf_actions_subcommand: ${{ github.event.inputs.terraform_action }}
+          tf_actions_working_dir: './infra'
+          tf_actions_comment: true
+          args: ${{ github.event.inputs.terraform_action == 'apply' && '-auto-approve -input=false plan.tfplan' || '-auto-approve' }}
