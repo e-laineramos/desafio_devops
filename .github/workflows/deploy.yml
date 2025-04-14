@@ -1,12 +1,13 @@
-name: Deploy to AWS ECS
+name: Deploy to ECS
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -26,28 +27,36 @@ jobs:
           terraform init
           terraform apply -auto-approve
 
+      - name: Debug Outputs
+        run: |
+          echo "Task Definition: '${{ env.task_definition }}'"
+          echo "ECS Service: '${{ env.ecs_service }}'"
+          echo "ECS Cluster: '${{ env.ecs_cluster }}'"
+          echo "Se algum valor acima estiver vazio, há um problema com os outputs do Terraform"
+
       - name: Get Terraform Outputs
         id: tf_outputs
         working-directory: ./infra
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
         run: |
           echo "task_definition=$(terraform output -raw task_definition_family | tr -d '\r\n')" >> $GITHUB_ENV
           echo "ecs_service=$(terraform output -raw ecs_service_name | tr -d '\r\n')" >> $GITHUB_ENV
           echo "ecs_cluster=$(terraform output -raw ecs_cluster_name | tr -d '\r\n')" >> $GITHUB_ENV
 
+      - name: Check if Outputs are set
+        run: |
+          echo "Task Definition: ${{ env.task_definition }}"
+          echo "ECS Service: ${{ env.ecs_service }}"
+          echo "ECS Cluster: ${{ env.ecs_cluster }}"
+
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: ${{ steps.tf_outputs.outputs.task_definition }}
-          service: ${{ steps.tf_outputs.outputs.ecs_service }}
-          cluster: ${{ steps.tf_outputs.outputs.ecs_cluster }}
+          task-definition: ${{ env.task_definition }}
+          service: ${{ env.ecs_service }}
+          cluster: ${{ env.ecs_cluster }}
           wait-for-service-stability: true
         env:
           AWS_REGION: us-east-1
           AWS_DEFAULT_REGION: us-east-1
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
