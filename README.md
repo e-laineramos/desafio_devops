@@ -19,7 +19,7 @@ This project automates the deployment of a static website on AWS using Docker co
 
 ## 🏗️ Architecture Overview
 
-![Diagrama de Arquitetura AWS](assets\architecture.png)
+![Diagrama de Arquitetura AWS](assets/images/architecture.png)
 
 **Components:**
 - **Frontend**: Static website served from a Docker container
