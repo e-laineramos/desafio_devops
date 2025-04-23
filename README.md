@@ -19,12 +19,10 @@ This project automates the deployment of a static website on AWS using Docker co
 
 ## 🏗️ Architecture Overview
 
-![Diagrama de Arquitetura AWS](assets/images/architecture.png)
-
 **Components:**
 - **Frontend**: Static website served from a Docker container
 - **Infrastructure**:  
-  - ECS Fargate (serverless containers)  
+  - Amazon ECS
   - Application Load Balancer (ALB)  
   - VPC with public subnets in two Availability Zones  
   - CloudWatch for monitoring
@@ -95,7 +93,7 @@ Open the URL in your browser.
 
 ## 💰 Cost Considerations
 This setup uses AWS Free Tier eligible resources:
-- **ECS Fargate:** 750 hours/month with 0.25 vCPU
+- **ECS:** 750 hours/month with 0.25 vCPU
 - **ALB:** 750 hours/month
 
 > ⚠️ **Note:** ALB might incur minimal charges beyond Free Tier. Monitor your AWS billing dashboard regularly.
